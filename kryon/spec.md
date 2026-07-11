@@ -29,14 +29,14 @@ x = 11          // Error: Cannot assign to immutable variable
 
 ## 5. Functions
 Functions are defined with `fn`. Return types are specified after `->`.
-```kryon
+```keryon
 fn add(a: i32, b: i32) -> i32 {
     return a + b
 }
 ```
 
 ## 6. Concurrency
-Kryon uses `spawn` for lightweight threads and `async`/`await` for asynchronous tasks.
+Keryon uses `spawn` for lightweight threads and `async`/`await` for asynchronous tasks.
 ```kryon
 async fn fetch_data(url: str) -> str {
     // ...
