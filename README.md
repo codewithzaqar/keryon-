@@ -1,4 +1,4 @@
-# Keryon
+# Kryon
 
 **Version:** v0.0.1  
 **Status:** Pre-Alpha  
