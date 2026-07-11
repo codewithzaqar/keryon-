@@ -80,7 +80,61 @@ class Interpreter:
             value = self.evaluate(stmt.value)
         raise ReturnSignal(value)
 
+    def visit_for_stmt(self, stmt: ast.For):
+        # Execute initializer in current scope
+        if stmt.initializer is not None:
+            self.execute(stmt.initializer)
+
+        while True:
+            # Check condition
+            if stmt.condition is not None:
+                if not self.is_truthy(self.evaluate(stmt.condition)):
+                    break
+
+            # Execute body
+            # Note: In a real language, for-loop body might have its own scope for the init var
+            # But for simplicity, we execute in current scope or block scope if body is block
+            self.execute(stmt.body)
+
+            # Execute increment
+            if stmt.increment is not None:
+                self.evaluate(stmt.increment)
+
     # --- Expression Visitors ---
+
+    def visit_array_literal_expr(self, expr: ast.ArrayLiteral):
+        elements = [self.evaluate(e) for e in expr.elements]
+        return list(elements)
+
+    def visit_get_index_expr(self, expr: ast.GetIndex):
+        obj = self.evaluate(expr.object)
+        index = self.evaluate(expr.index)
+
+        if isinstance(obj, list):
+            if not isinstance(index, int) and not isinstance(index, float):
+                raise KryonRuntimeError(None, "Array index must be a number")
+            idx = int(index)
+            if idx < 0 or idx >= len(obj):
+                raise KryonRuntimeError(None, f"Array index out of bounds: {idx}")
+            return obj[idx]
+
+        raise KryonRuntimeError(None, "Can only index into arrays")
+
+    def visit_set_index_expr(self, expr: ast.SetIndex):
+        obj = self.evaluate(expr.object)
+        index = self.evaluate(expr.index)
+        value = self.evaluate(expr.value)
+
+        if isinstance(obj, list):
+            if not isinstance(index, int) and not isinstance(index, float):
+                raise KryonRuntimeError(None, "Array index must be a number")
+            idx = int(index)
+            if idx < 0 or idx >= len(obj):
+                raise KryonRuntimeError(None, f"Array index out of bounds: {idx}")
+            obj[idx] = value
+            return value
+
+        raise KryonRuntimeError(None, "Can only set index on arrays")
 
     def visit_literal_expr(self, expr: ast.Literal):
         return expr.value

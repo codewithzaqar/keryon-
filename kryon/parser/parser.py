@@ -29,6 +29,8 @@ class Parser:
             return self.var_declaration()
         if self.match(TokenType.RETURN):
             return self.return_statement() # Allow return at top level for testing? Or restrict later.
+        if self.match(TokenType.FOR):
+            return self.for_statement()
         return self.statement()
 
     def function_declaration(self) -> ast.FunctionDecl:
@@ -173,9 +175,22 @@ class Parser:
         while True:
             if self.match(TokenType.LEFT_PAREN):
                 expr = self.finish_call(expr)
+            elif self.match(TokenType.LEFT_BRACKET):
+                expr = self.finish_subscript(expr)
             else:
                 break
         return expr
+
+    def finish_subscript(self, obj: ast.Expr) -> ast.Expr:
+        index = self.expression()
+        self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index.")
+
+        # Check if it's an assignment: arr[i] = value
+        if self.match(TokenType.EQUAL):
+            value = self.expression()
+            return ast.SetIndex(obj, index, value)
+
+        return ast.GetIndex(obj, index)
 
     def finish_call(self, callee: ast.Expr) -> ast.Call:
         arguments = []
@@ -201,8 +216,22 @@ class Parser:
             expr = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
             return ast.Grouping(expr)
+
+        if self.match(TokenType.LEFT_BRACKET):
+            return self.array_literal()
         
         raise self.error(self.peek(), "Expect expression.")
+
+    def array_literal(self) -> ast.ArrayLiteral:
+        elements = []
+        if not self.check(TokenType.RIGHT_BRACKET):
+            while True:
+                elements.append(self.expression())
+                if not self.match(TokenType.COMMA):
+                    break
+
+        self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after array elements.")
+        return ast.ArrayLiteral(elements)
 
     # --- Helper Methods ---
 
@@ -284,3 +313,28 @@ class Parser:
         
         body = self.statement()
         return ast.While(condition, body)
+
+    def for_statement(self) -> ast.For:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.")
+
+        initializer = None
+        if self.match(TokenType.SEMICOLON):
+            initializer = None
+        elif self.match(TokenType.LET, TokenType.MUT):
+            initializer = self.var_declaration()
+        else:
+            initializer = self.expression_statement()
+
+        condition = None
+        if not self.check(TokenType.SEMICOLON):
+            condition = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after loop condition.")
+
+        increment = None
+        if not self.check(TokenType.RIGHT_PAREN):
+            increment = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.")
+
+        body = self.statement()
+
+        return ast.For(initializer, condition, increment, body)

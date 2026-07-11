@@ -132,3 +132,37 @@ class Return(Stmt):
 
     def accept(self, visitor):
         return visitor.visit_return_stmt(self)
+
+class For(Stmt):
+    def __init__(self, initializer: Stmt, condition: Expr, increment: Expr, body: Stmt):
+        self.initializer = initializer
+        self.condition = condition
+        self.increment = increment
+        self.body = body
+
+    def accept(self, visitor):
+        return visitor.visit_for_stmt(self)
+
+class GetIndex(Expr):
+    def __init__(self, object: Expr, index: Expr):
+        self.object = object
+        self.index = index
+
+    def accept(self, visitor):
+        return visitor.visit_get_index_expr(self)
+
+class SetIndex(Expr):
+    def __init__(self, object: Expr, index: Expr, value: Expr):
+        self.object = object
+        self.index = index
+        self.value = value
+
+    def accept(self, visitor):
+        return visitor.visit_set_index_expr(self)
+
+class ArrayLiteral(Expr):
+    def __init__(self, elements: List[Expr]):
+        self.elements = elements
+
+    def accept(self, visitor):
+        return visitor.visit_array_literal_expr(self)

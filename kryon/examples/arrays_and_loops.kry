@@ -1,0 +1,15 @@
+let numbers = [10, 20, 30, 40, 50];
+
+print("First element:");
+print(numbers[0]);
+
+print("Setting last element to 99");
+numbers[4] = 99;
+print(numbers[4]);
+
+print("Looping through array:");
+for (let i = 0; i < 5; i = i + 1) {
+	print(numbers[i]);
+}
+
+print("Done");
