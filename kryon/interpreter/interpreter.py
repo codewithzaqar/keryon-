@@ -39,6 +39,10 @@ class Interpreter:
 
     # --- Statement Visitors ---
 
+    def visit_struct_decl_stmt(self, stmt: ast.StructDecl):
+        # Store struct definition in current environment
+        self.environment.define(stmt.name, stmt)
+
     def visit_expression_stmt(self, stmt: ast.ExpressionStmt):
         self.evaluate(stmt.expression)
 
@@ -101,6 +105,40 @@ class Interpreter:
                 self.evaluate(stmt.increment)
 
     # --- Expression Visitors ---
+
+    def visit_struct_instance_expr(self, expr: ast.StructInstance):
+        # Create instance dictionary
+        instance = {"__type__": expr.struct_name}
+        
+        # Evaluate field values
+        for field_name, field_expr in expr.field_values.items():
+            instance[field_name] = self.evaluate(field_expr)
+            
+        return instance
+
+    def visit_get_property_expr(self, expr: ast.GetProperty):
+        obj = self.evaluate(expr.object)
+        
+        if isinstance(obj, dict) and "__type__" in obj:
+            if expr.name in obj:
+                return obj[expr.name]
+            else:
+                raise KryonRuntimeError(None, f"Undefined property '{expr.name}' on struct '{obj['__type__']}'")
+        
+        raise KryonRuntimeError(None, "Can only get properties on structs")
+
+    def visit_set_property_expr(self, expr: ast.SetProperty):
+        obj = self.evaluate(expr.object)
+        value = self.evaluate(expr.value)
+        
+        if isinstance(obj, dict) and "__type__" in obj:
+            if expr.name in obj:
+                obj[expr.name] = value
+                return value
+            else:
+                raise KryonRuntimeError(None, f"Undefined property '{expr.name}' on struct '{obj['__type__']}'")
+        
+        raise KryonRuntimeError(None, "Can only set properties on structs")
 
     def visit_array_literal_expr(self, expr: ast.ArrayLiteral):
         elements = [self.evaluate(e) for e in expr.elements]

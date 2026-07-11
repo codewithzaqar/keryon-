@@ -1,0 +1,19 @@
+struct Person {
+    name: str,
+    age: i32
+};
+
+fn main() {
+    let p = Person { name: "Alice", age: 30 };
+    
+    print("Name:");
+    print(p.name);
+    
+    print("Age:");
+    print(p.age);
+    
+    // Modify field
+    p.age = 31;
+    print("New Age:");
+    print(p.age);
+}

@@ -23,15 +23,46 @@ class Parser:
         return statements
 
     def declaration(self) -> ast.Stmt:
-        if self.match(TokenType.FN):
-            return self.function_declaration()
-        if self.match(TokenType.LET, TokenType.MUT):
-            return self.var_declaration()
-        if self.match(TokenType.RETURN):
-            return self.return_statement() # Allow return at top level for testing? Or restrict later.
-        if self.match(TokenType.FOR):
-            return self.for_statement()
-        return self.statement()
+        try:
+            if self.match(TokenType.FN):
+                return self.function_declaration()
+            if self.match(TokenType.LET, TokenType.MUT):
+                return self.var_declaration()
+            if self.match(TokenType.RETURN):
+                return self.return_statement()
+            if self.match(TokenType.FOR):
+                return self.for_statement()
+            if self.match(TokenType.STRUCT):
+                return self.struct_declaration()
+            
+            return self.statement()
+        except ParseError:
+            self.synchronize()
+            return None
+
+    def struct_declaration(self) -> ast.StructDecl:
+        name = self.consume(TokenType.IDENTIFIER, "Expect struct name.")
+        
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before struct fields.")
+        
+        fields = []
+        if not self.check(TokenType.RIGHT_BRACE):
+            while True:
+                field_name = self.consume(TokenType.IDENTIFIER, "Expect field name.")
+                # Skip type annotation for now
+                if self.check(TokenType.COLON):
+                    self.advance()
+                    self.consume(TokenType.IDENTIFIER, "Expect type name.")
+                
+                fields.append(field_name.lexeme)
+                
+                if not self.match(TokenType.COMMA):
+                    break
+        
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after struct fields.")
+        self.consume(TokenType.SEMICOLON, "Expect ';' after struct declaration.")
+        
+        return ast.StructDecl(name.lexeme, fields)
 
     def function_declaration(self) -> ast.FunctionDecl:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
@@ -177,6 +208,14 @@ class Parser:
                 expr = self.finish_call(expr)
             elif self.match(TokenType.LEFT_BRACKET):
                 expr = self.finish_subscript(expr)
+            elif self.match(TokenType.DOT):
+                name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'.")
+                # Check if it's an assignment: obj.prop = value
+                if self.match(TokenType.EQUAL):
+                    value = self.expression()
+                    expr = ast.SetProperty(expr, name.lexeme, value)
+                else:
+                    expr = ast.GetProperty(expr, name.lexeme)
             else:
                 break
         return expr
@@ -210,17 +249,36 @@ class Parser:
             return ast.Literal(self.previous().literal)
         
         if self.match(TokenType.IDENTIFIER):
-            return ast.Variable(self.previous().lexeme)
+            name = self.previous()
+            # Check for struct instantiation: Name { ... }
+            if self.match(TokenType.LEFT_BRACE):
+                return self.finish_struct_instance(name.lexeme)
+            return ast.Variable(name.lexeme)
         
         if self.match(TokenType.LEFT_PAREN):
             expr = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
             return ast.Grouping(expr)
-
+        
         if self.match(TokenType.LEFT_BRACKET):
             return self.array_literal()
         
         raise self.error(self.peek(), "Expect expression.")
+
+    def finish_struct_instance(self, struct_name: str) -> ast.StructInstance:
+        field_values = {}
+        if not self.check(TokenType.RIGHT_BRACE):
+            while True:
+                key = self.consume(TokenType.IDENTIFIER, "Expect field name.")
+                self.consume(TokenType.COLON, "Expect ':' after field name.")
+                value = self.expression()
+                field_values[key.lexeme] = value
+                
+                if not self.match(TokenType.COMMA):
+                    break
+        
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after struct fields.")
+        return ast.StructInstance(struct_name, field_values)
 
     def array_literal(self) -> ast.ArrayLiteral:
         elements = []

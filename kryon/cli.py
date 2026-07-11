@@ -3,6 +3,7 @@ import os
 from .lexer import Lexer
 from .parser import Parser
 from .interpreter import Interpreter
+from .ast import nodes as ast  # <-- ADDED IMPORT
 
 def main():
     if len(sys.argv) < 3:
@@ -51,15 +52,25 @@ def run_interpreter(source: str, filename: str):
     statements = parser.parse()
     
     if parser.errors:
+        print("--- Parse Errors ---")
         for error in parser.errors:
             print(error)
         return
 
     # 3. Interpret
-    interpreter = Interpreter()
-    interpreter.interpret(statements)
-    
-    print("--- Execution Complete ---")
+    try:
+        interpreter = Interpreter()
+        interpreter.interpret(statements)
+        
+        # 4. Auto-run main() if it exists
+        if "main" in interpreter.environment.values:
+            main_func = interpreter.environment.get("main")
+            if isinstance(main_func, ast.FunctionDecl):
+                interpreter.execute_function(main_func, [])
+                
+        print("--- Execution Complete ---")
+    except Exception as e:
+        print(f"Interpreter Error: {e}")
 
 if __name__ == "__main__":
     main()

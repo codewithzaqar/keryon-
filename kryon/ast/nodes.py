@@ -166,3 +166,36 @@ class ArrayLiteral(Expr):
 
     def accept(self, visitor):
         return visitor.visit_array_literal_expr(self)
+
+class StructDecl(Stmt):
+    def __init__(self, name: str, fields: List[str]):
+        self.name = name
+        self.fields = fields
+
+    def accept(self, visitor):
+        return visitor.visit_struct_decl_stmt(self)
+
+class StructInstance(Expr):
+    def __init__(self, struct_name: str, field_values: Dict[str, Expr]):
+        self.struct_name = struct_name
+        self.field_values = field_values
+
+    def accept(self, visitor):
+        return visitor.visit_struct_instance_expr(self)
+
+class GetProperty(Expr):
+    def __init__(self, object: Expr, name: str):
+        self.object = object
+        self.name = name
+
+    def accept(self, visitor):
+        return visitor.visit_get_property_expr(self)
+
+class SetProperty(Expr):
+    def __init__(self, object: Expr, name: str, value: Expr):
+        self.object = object
+        self.name = name
+        self.value = value
+
+    def accept(self, visitor):
+        return visitor.visit_set_property_expr(self)

@@ -2,41 +2,41 @@ from enum import Enum, auto
 
 class TokenType(Enum):
     # Single-character tokens
-    LEFT_PAREN = auto()
-    RIGHT_PAREN = auto()
-    LEFT_BRACE = auto()
-    RIGHT_BRACE = auto()
-    LEFT_BRACKET = auto()
-    RIGHT_BRACKET = auto()
-    COMMA = auto()
-    DOT = auto()
-    MINUS = auto()
-    PLUS = auto()
-    SEMICOLON = auto()
-    COLON = auto()
-    STAR = auto()
-    SLASH = auto()
-    BANG = auto()
-    ARROW = auto()
-    AMPERSAND = auto() 
-    PIPE = auto() 
-
+    LEFT_PAREN = auto()    # (
+    RIGHT_PAREN = auto()   # )
+    LEFT_BRACE = auto()    # {
+    RIGHT_BRACE = auto()   # }
+    LEFT_BRACKET = auto()  # [
+    RIGHT_BRACKET = auto() # ]
+    COMMA = auto()         # ,
+    DOT = auto()           # .
+    MINUS = auto()         # -
+    PLUS = auto()          # +
+    SEMICOLON = auto()     # ;
+    COLON = auto()         # :
+    STAR = auto()          # *
+    SLASH = auto()         # /
+    BANG = auto()          # !
+    ARROW = auto()         # ->
+    AMPERSAND = auto()     # &
+    PIPE = auto()          # |
+    
     # One or two character tokens
-    BANG_EQUAL = auto()
-    EQUAL = auto()
-    EQUAL_EQUAL = auto()
-    GREATER = auto()
-    GREATER_EQUAL = auto()
-    LESS = auto()
-    LESS_EQUAL = auto()
-    AMPERSAND_AMPERSAND = auto()
-    PIPE_PIPE = auto()
-
+    BANG_EQUAL = auto()    # !=
+    EQUAL = auto()         # =
+    EQUAL_EQUAL = auto()   # ==
+    GREATER = auto()       # >
+    GREATER_EQUAL = auto() # >=
+    LESS = auto()          # <
+    LESS_EQUAL = auto()    # <=
+    AND = auto()           # &&
+    OR = auto()            # ||
+    
     # Literals
     IDENTIFIER = auto()
     STRING = auto()
     NUMBER = auto()
-
+    
     # Keywords
     FN = auto()
     LET = auto()
@@ -53,10 +53,8 @@ class TokenType(Enum):
     SPAWN = auto()
     STRUCT = auto()
     IMPL = auto()
-    AND = auto()
-    OR = auto()
-    PRINT = auto()
-
+    PRINT = auto()         # Optional keyword, though we treat it as function
+    
     # Special
     EOF = auto()
     UNKNOWN = auto()

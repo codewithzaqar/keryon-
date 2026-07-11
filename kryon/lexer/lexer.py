@@ -27,6 +27,7 @@ class Lexer:
             "impl": TokenType.IMPL,
             "and": TokenType.AND,
             "or": TokenType.OR,
+            "struct": TokenType.STRUCT,
             # "print": TokenType.PRINT,
         }
 

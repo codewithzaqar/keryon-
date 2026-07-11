@@ -1,4 +1,4 @@
 fn main() {
-	let message = "Hello, Kryon!"
-	print(message)
+	let message = "Hello, Kryon!";
+	print(message);
 }
