@@ -96,6 +96,9 @@ class Parser:
         is_mut = self.previous().type == TokenType.MUT
         name = self.consume(TokenType.IDENTIFIER, "Expect variable name.")
         
+        if self.match(TokenType.COLON):
+            self.consume(TokenType.IDENTIFIER, "Expect type name.")
+
         initializer = None
         if self.match(TokenType.EQUAL):
             initializer = self.expression()
@@ -104,12 +107,12 @@ class Parser:
         return ast.VarDecl(name.lexeme, initializer, is_mut)
 
     def statement(self) -> ast.Stmt:
-        if self.match(TokenType.PRINT): # If you added PRINT keyword back, otherwise remove
-             pass 
         if self.match(TokenType.IF):
             return self.if_statement()
         if self.match(TokenType.WHILE):
             return self.while_statement()
+        if self.match(TokenType.FOR):
+            return self.for_statement()
         if self.match(TokenType.LEFT_BRACE):
             return self.block()
         
@@ -187,7 +190,7 @@ class Parser:
 
     def factor(self) -> ast.Expr:
         expr = self.unary()
-        while self.match(TokenType.SLASH, TokenType.STAR):
+        while self.match(TokenType.SLASH, TokenType.STAR, TokenType.PERCENT):
             operator = self.previous()
             right = self.unary()
             expr = ast.Binary(expr, operator.lexeme, right)
@@ -357,8 +360,8 @@ class Parser:
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.")
         
         then_branch = self.statement()
+
         else_branch = None
-        
         if self.match(TokenType.ELSE):
             else_branch = self.statement()
             

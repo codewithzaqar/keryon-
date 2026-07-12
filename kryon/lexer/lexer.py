@@ -91,6 +91,8 @@ class Lexer:
                     self.advance() # consume /
             else:
                 self.add_token(TokenType.SLASH)
+        elif c == '%':
+            self.add_token(TokenType.PERCENT)
         elif c == ' ':
             pass # Ignore whitespace
         elif c == '\r' or c == '\t':

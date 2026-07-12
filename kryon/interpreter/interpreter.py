@@ -201,7 +201,8 @@ class Interpreter:
         if expr.operator == "/": 
             if right == 0: raise KryonRuntimeError(None, "Division by zero")
             return left / right
-        
+        if expr.operator == "%": return left % right
+
         if expr.operator == ">": return left > right
         if expr.operator == ">=": return left >= right
         if expr.operator == "<": return left < right

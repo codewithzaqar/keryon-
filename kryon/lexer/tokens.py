@@ -16,6 +16,7 @@ class TokenType(Enum):
     COLON = auto()         # :
     STAR = auto()          # *
     SLASH = auto()         # /
+    PERCENT = auto()       # %
     BANG = auto()          # !
     ARROW = auto()         # ->
     AMPERSAND = auto()     # &
