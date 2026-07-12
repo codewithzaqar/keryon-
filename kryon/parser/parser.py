@@ -34,11 +34,18 @@ class Parser:
                 return self.for_statement()
             if self.match(TokenType.STRUCT):
                 return self.struct_declaration()
+            if self.match(TokenType.IMPORT):
+                return self.import_statement()
             
             return self.statement()
         except ParseError:
             self.synchronize()
             return None
+
+    def import_statement(self) -> ast.ImportStmt:
+        path_token = self.consume(TokenType.STRING, "Expect file path after import.")
+        self.consume(TokenType.SEMICOLON, "Expect ';' after import.")
+        return ast.ImportStmt(path_token.literal)
 
     def struct_declaration(self) -> ast.StructDecl:
         name = self.consume(TokenType.IDENTIFIER, "Expect struct name.")

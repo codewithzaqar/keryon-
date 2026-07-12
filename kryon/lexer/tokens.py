@@ -55,6 +55,7 @@ class TokenType(Enum):
     STRUCT = auto()
     IMPL = auto()
     PRINT = auto()         # Optional keyword, though we treat it as function
+    IMPORT = auto()
     
     # Special
     EOF = auto()

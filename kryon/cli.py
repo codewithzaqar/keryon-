@@ -60,6 +60,7 @@ def run_interpreter(source: str, filename: str):
     # 3. Interpret
     try:
         interpreter = Interpreter()
+        interpreter.set_entry_point(filename)
         interpreter.interpret(statements)
         
         # 4. Auto-run main() if it exists

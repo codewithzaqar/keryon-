@@ -1,7 +1,9 @@
 from ..ast import nodes as ast
 from .environment import Environment, RuntimeError
+from .module_resolver import ModuleResolver
 from ..lexer.tokens import Token
 import time
+import os
 
 class KryonRuntimeError(RuntimeError):
     pass
@@ -15,12 +17,16 @@ class Interpreter:
     def __init__(self):
         self.globals = Environment()
         self.environment = self.globals
+        self.module_resolver = ModuleResolver()
         self._setup_builtins()
 
     def _setup_builtins(self):
         self.globals.define("print", lambda *args: print(*args))
         self.globals.define("clock", lambda: time.time())
         self.globals.define("input", lambda prompt="": input(prompt))
+
+    def set_entry_point(self, filename: str):
+        self.module_resolver.set_base_path(filename)
 
     def interpret(self, statements: list[ast.Stmt]):
         try:
@@ -29,7 +35,7 @@ class Interpreter:
         except KryonRuntimeError as e:
             print(f"Runtime Error: {e.message}")
         except ReturnSignal as e:
-            print(f"Unexpected return outside function")
+            pass
 
     def execute(self, stmt: ast.Stmt):
         stmt.accept(self)
@@ -286,6 +292,38 @@ class Interpreter:
     def visit_lambda_expr(self, expr: ast.Lambda):
         # Create a closure that captures the current environment
         return KryonFunction(expr.params, expr.body, self.environment)
+
+    def visit_import_stmt(self, stmt: ast.ImportStmt):
+        module_path = self.module_resolver.resolve_path(stmt.path)
+        module_name = stmt.path
+
+        if self.module_resolver.is_loaded(module_name):
+            return
+
+        if not os.path.exists(module_path):
+            raise KryonRuntimeError(None, f"Module '{stmt.path}' not found at {module_path}")
+
+        self.module_resolver.mark_loaded(module_name)
+
+        with open(module_path, 'r') as f:
+            source = f.read()
+
+        from ..lexer import Lexer
+        from ..parser import Parser
+
+        lexer = Lexer(source)
+        tokens = lexer.scan_tokens()
+
+        parser = Parser(tokens)
+        statements = parser.parse()
+
+        if parser.errors:
+            for error in parser.errors:
+                print(f"Error in module {stmt.path}: {error}")
+            return
+
+        for statement in statements:
+            self.execute(statement)
 
 class KryonFunction:
     def __init__(self, params, body, closure):

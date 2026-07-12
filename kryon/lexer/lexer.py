@@ -29,6 +29,7 @@ class Lexer:
             "or": TokenType.OR,
             "struct": TokenType.STRUCT,
             # "print": TokenType.PRINT,
+            "import": TokenType.IMPORT
         }
 
     def scan_tokens(self) -> list[Token]:

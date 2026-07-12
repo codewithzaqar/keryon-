@@ -217,3 +217,10 @@ class Lambda(Expr):
 
     def accept(self, visitor):
         return visitor.visit_lambda_expr(self)
+
+class ImportStmt(Stmt):
+    def __init__(self, path: str):
+        self.path = path
+
+    def accept(self, visitor):
+        return visitor.visit_import_stmt(self)
