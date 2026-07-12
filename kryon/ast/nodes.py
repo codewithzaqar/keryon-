@@ -168,9 +168,10 @@ class ArrayLiteral(Expr):
         return visitor.visit_array_literal_expr(self)
 
 class StructDecl(Stmt):
-    def __init__(self, name: str, fields: List[str]):
+    def __init__(self, name: str, fields: List[str], methods: List[MethodDecl]):
         self.name = name
         self.fields = fields
+        self.methods = methods
 
     def accept(self, visitor):
         return visitor.visit_struct_decl_stmt(self)
@@ -199,3 +200,20 @@ class SetProperty(Expr):
 
     def accept(self, visitor):
         return visitor.visit_set_property_expr(self)
+
+class MethodDecl(Stmt):
+    def __init__(self, name: str, params: List[str], body: Block):
+        self.name = name
+        self.params = params
+        self.body = body
+
+    def accept(self, visitor):
+        return visitor.visit_method_decl_stmt(self)
+
+class Lambda(Expr):
+    def __init__(self, params: List[str], body: Block):
+        self.params = params
+        self.body = body
+
+    def accept(self, visitor):
+        return visitor.visit_lambda_expr(self)

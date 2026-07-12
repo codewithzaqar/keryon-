@@ -1,0 +1,27 @@
+struct Calculator {
+	value: i32,
+
+	fn add(self, n) {
+		self.value = self.value + n;
+	},
+
+	fn get_value(self) {
+		return self.value;
+	}
+};
+
+fn main() {
+	let calc = Calculator { value: 10 };
+
+	calc.add(5);
+	print(calc.get_value());
+
+	let multiplier = fn(factor) {
+		return fn(x) {
+			return x * factor;
+		};
+	};
+
+	let double = multiplier(2);
+	print(double(5));
+}

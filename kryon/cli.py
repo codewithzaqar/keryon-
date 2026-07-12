@@ -65,12 +65,20 @@ def run_interpreter(source: str, filename: str):
         # 4. Auto-run main() if it exists
         if "main" in interpreter.environment.values:
             main_func = interpreter.environment.get("main")
-            if isinstance(main_func, ast.FunctionDecl):
+            # Check if it's a KryonFunction (wrapper) or raw AST node
+            from kryon.ast import nodes as ast
+            from kryon.interpreter.interpreter import KryonFunction
+            
+            if isinstance(main_func, KryonFunction):
+                main_func.call(interpreter, [])
+            elif isinstance(main_func, ast.FunctionDecl):
                 interpreter.execute_function(main_func, [])
                 
         print("--- Execution Complete ---")
     except Exception as e:
         print(f"Interpreter Error: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()

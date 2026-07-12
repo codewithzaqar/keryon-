@@ -40,7 +40,6 @@ class Interpreter:
     # --- Statement Visitors ---
 
     def visit_struct_decl_stmt(self, stmt: ast.StructDecl):
-        # Store struct definition in current environment
         self.environment.define(stmt.name, stmt)
 
     def visit_expression_stmt(self, stmt: ast.ExpressionStmt):
@@ -76,7 +75,8 @@ class Interpreter:
 
     def visit_function_decl_stmt(self, stmt: ast.FunctionDecl):
         # Define function in current environment
-        self.environment.define(stmt.name, stmt)
+        func = KryonFunction(stmt.params, stmt.body, self.environment)
+        self.environment.define(stmt.name, func)
 
     def visit_return_stmt(self, stmt: ast.Return):
         value = None
@@ -119,11 +119,24 @@ class Interpreter:
     def visit_get_property_expr(self, expr: ast.GetProperty):
         obj = self.evaluate(expr.object)
         
+        # 1. Check if it's a struct instance
         if isinstance(obj, dict) and "__type__" in obj:
+            struct_name = obj["__type__"]
+            
+            # 2. Check if it's a regular field
             if expr.name in obj:
                 return obj[expr.name]
-            else:
-                raise KryonRuntimeError(None, f"Undefined property '{expr.name}' on struct '{obj['__type__']}'")
+            
+            # 3. Check if it's a method in the Struct Definition
+            struct_def = self.environment.get(struct_name)
+            if isinstance(struct_def, ast.StructDecl):
+                for method in struct_def.methods:
+                    if method.name == expr.name:
+                        # Return a bound method (closure)
+                        # We create a KryonFunction that pre-fills 'self'
+                        return BoundMethod(obj, method, self.environment)
+            
+            raise KryonRuntimeError(None, f"Undefined property '{expr.name}' on struct '{struct_name}'")
         
         raise KryonRuntimeError(None, "Can only get properties on structs")
 
@@ -231,16 +244,19 @@ class Interpreter:
         callee = self.evaluate(expr.callee)
         arguments = [self.evaluate(arg) for arg in expr.arguments]
 
-        if callable(callee):
-            if len(arguments) != callee.__code__.co_argcount:
-                 # Simple check, doesn't handle *args
-                 pass 
-            return callee(*arguments)
-        
-        if isinstance(callee, ast.FunctionDecl):
-            return self.execute_function(callee, arguments)
+        # Handle Bound Methods
+        if isinstance(callee, BoundMethod):
+            return callee.call(self, arguments)
+
+        # Handle Regular Functions/Closures
+        if isinstance(callee, KryonFunction):
+            return callee.call(self, arguments)
             
-        raise KryonRuntimeError(None, "Can only call functions and classes.")
+        # Handle Python built-ins
+        if callable(callee):
+            return callee(*arguments)
+            
+        raise KryonRuntimeError(None, f"Can only call functions and methods. Got {type(callee)}")
 
     def execute_function(self, func: ast.FunctionDecl, arguments: list):
         # Create new environment for function scope
@@ -266,3 +282,65 @@ class Interpreter:
         if obj is None: return False
         if isinstance(obj, bool): return obj
         return True
+
+    def visit_lambda_expr(self, expr: ast.Lambda):
+        # Create a closure that captures the current environment
+        return KryonFunction(expr.params, expr.body, self.environment)
+
+class KryonFunction:
+    def __init__(self, params, body, closure):
+        self.params = params
+        self.body = body
+        self.closure = closure
+
+    def call(self, interpret, arguments):
+        environment = Environment(self.closure)
+        for param, arg in zip(self.params, arguments):
+            environment.define(param, arg)
+
+        previous_env = interpret.environment
+        interpret.environment = environment
+
+        try:
+            for stmt in self.body.statements:
+                interpret.execute(stmt)
+        except ReturnSignal as e:
+            value = e.value
+            Interpreter.environment = previous_env
+            return value
+
+        Interpreter.environment = previous_env
+        return None
+
+class BoundMethod:
+    def __init__(self, instance, method_decl, closure):
+        self.instance = instance
+        self.method_decl = method_decl
+        self.closure = closure
+
+    def call(self, interpreter, arguments):
+        # 'self' is already bound to self.instance
+        # So we just pass the remaining arguments
+        environment = Environment(self.closure)
+        
+        # Bind 'self' parameter explicitly
+        if self.method_decl.params:
+            environment.define(self.method_decl.params[0], self.instance)
+            
+        # Bind other parameters
+        for param, arg in zip(self.method_decl.params[1:], arguments):
+            environment.define(param, arg)
+        
+        previous_env = interpreter.environment
+        interpreter.environment = environment
+        
+        try:
+            for stmt in self.method_decl.body.statements:
+                interpreter.execute(stmt)
+        except ReturnSignal as e:
+            value = e.value
+            interpreter.environment = previous_env
+            return value
+        
+        interpreter.environment = previous_env
+        return None

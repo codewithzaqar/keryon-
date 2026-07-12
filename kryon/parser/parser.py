@@ -43,26 +43,73 @@ class Parser:
     def struct_declaration(self) -> ast.StructDecl:
         name = self.consume(TokenType.IDENTIFIER, "Expect struct name.")
         
-        self.consume(TokenType.LEFT_BRACE, "Expect '{' before struct fields.")
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before struct body.")
         
         fields = []
-        if not self.check(TokenType.RIGHT_BRACE):
+        methods = []
+        
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            # Check for Method Definition
+            if self.check(TokenType.FN):
+                methods.append(self.method_declaration())
+                # Allow optional comma or semicolon after method
+                self.match(TokenType.COMMA)
+                self.match(TokenType.SEMICOLON)
+                continue
+            
+            # Otherwise, assume Field Declaration
+            if self.check(TokenType.RIGHT_BRACE):
+                break
+                
+            field_name = self.consume(TokenType.IDENTIFIER, "Expect field name or 'fn'.")
+            
+            # Optional type annotation
+            if self.check(TokenType.COLON):
+                self.advance() # consume :
+                # Consume type identifier if present (and not a separator)
+                if not self.check(TokenType.COMMA) and not self.check(TokenType.SEMICOLON) and not self.check(TokenType.RIGHT_BRACE):
+                     self.consume(TokenType.IDENTIFIER, "Expect type name.")
+            
+            fields.append(field_name.lexeme)
+            
+            # Consume separator (comma or semicolon) IF it exists
+            # If next token is }, we are done with fields
+            if self.check(TokenType.RIGHT_BRACE):
+                break
+            
+            if not self.match(TokenType.COMMA):
+                self.consume(TokenType.SEMICOLON, "Expect ';' or ',' after field.")
+
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after struct body.")
+        self.consume(TokenType.SEMICOLON, "Expect ';' after struct declaration.")
+        
+        return ast.StructDecl(name.lexeme, fields, methods)
+
+    def method_declaration(self) -> ast.MethodDecl:
+        self.consume(TokenType.FN, "Expect 'fn' keyword.") # Ensure we consume fn
+        name = self.consume(TokenType.IDENTIFIER, "Expect method name.")
+        
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after method name.")
+        parameters = []
+        if not self.check(TokenType.RIGHT_PAREN):
             while True:
-                field_name = self.consume(TokenType.IDENTIFIER, "Expect field name.")
-                # Skip type annotation for now
+                param_name = self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
                 if self.check(TokenType.COLON):
                     self.advance()
                     self.consume(TokenType.IDENTIFIER, "Expect type name.")
-                
-                fields.append(field_name.lexeme)
-                
+                parameters.append(param_name.lexeme)
                 if not self.match(TokenType.COMMA):
                     break
         
-        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after struct fields.")
-        self.consume(TokenType.SEMICOLON, "Expect ';' after struct declaration.")
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
         
-        return ast.StructDecl(name.lexeme, fields)
+        if self.match(TokenType.ARROW):
+            self.consume(TokenType.IDENTIFIER, "Expect return type.")
+
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before method body.")
+        body = self.block()
+        
+        return ast.MethodDecl(name.lexeme, parameters, body)
 
     def function_declaration(self) -> ast.FunctionDecl:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
@@ -213,10 +260,11 @@ class Parser:
                 expr = self.finish_subscript(expr)
             elif self.match(TokenType.DOT):
                 name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'.")
-                # Check if it's an assignment: obj.prop = value
                 if self.match(TokenType.EQUAL):
                     value = self.expression()
                     expr = ast.SetProperty(expr, name.lexeme, value)
+                elif self.check(TokenType.LEFT_PAREN):
+                    expr = ast.GetProperty(expr, name.lexeme)
                 else:
                     expr = ast.GetProperty(expr, name.lexeme)
             else:
@@ -265,8 +313,27 @@ class Parser:
         
         if self.match(TokenType.LEFT_BRACKET):
             return self.array_literal()
+
+        if self.match(TokenType.FN):
+            return self.lambda_expression()
         
         raise self.error(self.peek(), "Expect expression.")
+
+    def lambda_expression(self) -> ast.Lambda:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after fn in lambda.")
+        parameters = []
+        if not self.check(TokenType.RIGHT_PAREN):
+            while True:
+                param_name = self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
+                parameters.append(param_name.lexeme)
+                if not self.match(TokenType.COMMA):
+                    break
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
+
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before lambda body.")
+        body = self.block()
+
+        return ast.Lambda(parameters, body)
 
     def finish_struct_instance(self, struct_name: str) -> ast.StructInstance:
         field_values = {}
