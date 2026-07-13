@@ -1,0 +1,22 @@
+fn make_error(msg) {
+    return Error { message: msg };
+}
+
+fn divide(a, b) {
+    if (b == 0) {
+        throw make_error("Division by zero!");
+    }
+    return a / b;
+}
+
+fn main() {
+    try {
+        let result = divide(10, 0);
+        print(result);
+    } catch (e) {
+        print("Caught an error:");
+        print(e.message);
+    }
+    
+    print("Program continues...");
+}

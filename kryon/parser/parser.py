@@ -36,11 +36,37 @@ class Parser:
                 return self.struct_declaration()
             if self.match(TokenType.IMPORT):
                 return self.import_statement()
+            if self.match(TokenType.TRY):
+                return self.try_catch_statement()
+            if self.match(TokenType.THROW):
+                return self.throw_statement()
             
             return self.statement()
         except ParseError:
             self.synchronize()
             return None
+
+    def try_catch_statement(self) -> ast.TryCatch:
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after try.")
+        try_block = self.block()
+
+        self.consume(TokenType.CATCH, "Expect 'catch' after try block.")
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after catch.")
+
+        catch_var = self.consume(TokenType.IDENTIFIER, "Expect execution variable name.")
+
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after exception variable.")
+
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after catch clause.")
+        catch_block = self.block()
+
+        return ast.TryCatch(try_block, catch_var.lexeme, catch_block)
+
+    def throw_statement(self) -> ast.Throw:
+        # self.consume(TokenType.THROW, "Expect throw keyword.")
+        value = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after throw value.")
+        return ast.Throw(value)
 
     def import_statement(self) -> ast.ImportStmt:
         path_token = self.consume(TokenType.STRING, "Expect file path after import.")
@@ -382,10 +408,14 @@ class Parser:
             return self.advance()
         raise self.error(self.peek(), message)
 
-    def check(self, type: TokenType) -> bool:
+    def check(self, *types: TokenType) -> bool:
         if self.is_at_end():
             return False
-        return self.peek().type == type
+        
+        for type in types:
+            if self.peek().type == type:
+                return True
+        return False
 
     def advance(self) -> Token:
         if not self.is_at_end():

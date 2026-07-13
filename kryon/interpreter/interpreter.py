@@ -25,6 +25,9 @@ class Interpreter:
         self.globals.define("clock", lambda: time.time())
         self.globals.define("input", lambda prompt="": input(prompt))
 
+        error_struct = ast.StructDecl("Error", ["message"], [])
+        self.globals.define("Error", error_struct)
+
     def set_entry_point(self, filename: str):
         self.module_resolver.set_base_path(filename)
 
@@ -354,6 +357,26 @@ class Interpreter:
             name = name[:-4]
         return name
 
+    def visit_try_catch_stmt(self, stmt: ast.TryCatch):
+        try:
+            self.execute(stmt.try_block)
+        except KryonUserError as e:
+            previous_env = self.environment
+            self.environment = Environment(self.environment)
+
+            self.environment.define(stmt.catch_var, e.value)
+
+            try:
+                self.execute(stmt.catch_block)
+            finally:
+                self.environment = previous_env
+        except KryonRuntimeError as e:
+            raise e
+
+    def visit_throw_stmt(self, stmt: ast.Throw):
+        value = self.evaluate(stmt.expression)
+        raise KryonUserError(value)
+
 class KryonFunction:
     def __init__(self, params, body, closure):
         self.params = params
@@ -411,3 +434,8 @@ class BoundMethod:
         
         interpreter.environment = previous_env
         return None
+
+class KryonUserError(Exception):
+    def __init__(self, value):
+        self.value = value
+        super().__init__()

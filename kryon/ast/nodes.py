@@ -224,3 +224,19 @@ class ImportStmt(Stmt):
 
     def accept(self, visitor):
         return visitor.visit_import_stmt(self)
+
+class TryCatch(Stmt):
+    def __init__(self, try_block: Block, catch_var: str, catch_block: Block):
+        self.try_block = try_block
+        self.catch_var = catch_var
+        self.catch_block = catch_block
+
+    def accept(self, visitor):
+        return visitor.visit_try_catch_stmt(self)
+
+class Throw(Stmt):
+    def __init__(self, expression: Expr):
+        self.expression = expression
+
+    def accept(self, visitor):
+        return visitor.visit_throw_stmt(self)

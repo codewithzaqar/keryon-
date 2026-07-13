@@ -56,6 +56,9 @@ class TokenType(Enum):
     IMPL = auto()
     PRINT = auto()         # Optional keyword, though we treat it as function
     IMPORT = auto()
+    TRY = auto()
+    CATCH = auto()
+    THROW = auto()
     
     # Special
     EOF = auto()
